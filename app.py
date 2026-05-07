@@ -11,28 +11,7 @@ from analysis_engine import calculate_internal_pagerank
 st.set_page_config(page_title="Shree Shivam SEO Engine", page_icon="📈", layout="wide")
 
 # --- 1. BRAND CONFIGURATION REGISTRY (Move this up!) ---
-BRANDS = {
-    "Shree Shivam": {
-        "ga4_id": "250904023",
-        "gsc_domain": "sc-domain:shreeshivam.com",
-        "primary_color": "#2ecc71"
-    },
-    "White Hanger": {
-        "ga4_id": "346056397",
-        "gsc_domain": "sc-domain:whitehanger.in",
-        "primary_color": "#4da8b3"
-    },
-    "Amchoor": {
-        "ga4_id": "372242148",
-        "gsc_domain": "sc-domain:amchoor.com",
-        "primary_color": "#e67e22"
-    },
-    "Luxe": {
-        "ga4_id": "533609947",
-        "gsc_domain": "https://shreeshivam.com/", 
-        "primary_color": "#9b59b6"
-    }
-}
+BRANDS = st.secrets["brands"]
 
 # --- 2. SIDEBAR BRAND SELECTOR ---
 st.sidebar.title("🏢 Portfolio Management")
