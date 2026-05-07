@@ -20,8 +20,9 @@ brand_config = BRANDS[selected_brand_name]
 
 # --- 3. UPDATED DYNAMIC DATA LOADER ---
 @st.cache_data(ttl=600) 
-def load_brand_data(config):
+def load_brand_data(brand_name):
     # Pass the dynamic IDs from our config into the connectors
+    config = st.secrets["brands"][brand_name]
     gsc_data = get_gsc_page_data(property_url=config["gsc_domain"])
     ga4_data = get_ga4_page_data(property_id=config["ga4_id"])
     
