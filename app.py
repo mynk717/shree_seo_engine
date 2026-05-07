@@ -43,8 +43,7 @@ master_df, notion_df = load_live_data()
 st.sidebar.title("⚙️ SEO Engine")
 page = st.sidebar.radio("Navigation", [
     "Overview Dashboard", 
-    "🚨 Site Health Audit", 
-    "Action Matrix (Treasure Map)", 
+    "🚨 Advanced Site Audit", 
     "Internal Link Graph"
 ])
 
@@ -110,148 +109,133 @@ if page == "Overview Dashboard":
     else:
         st.warning("Fetching Data... Please wait or check authentication.")
 
-# --- PAGE 2: SITE HEALTH AUDIT (THE AUDITOR) ---
-elif page == "🚨 Site Health Audit":
-    st.title("🩺 Sitebulb-Style Health Audit")
-    st.markdown("Automated SEO triage. The engine analyzes your Master Data to calculate a live health score and flags critical architectural issues.")
+# --- PAGE 2: ADVANCED SITE AUDIT (THE AUDITOR) ---
+elif page == "🚨 Advanced Site Audit":
+    st.title("🩺 Advanced SEO Auditor")
+    st.markdown("Automated SEO triage mapping Technical, On-Page, and UX issues to exact URLs.")
 
     if not master_df.empty and 'Impressions' in master_df.columns:
-        # --- THE AUDIT ALGORITHM ---
-        total_urls = len(master_df)
         
-        # 1. Critical: Ghost Products (In Shopify, 0 Impressions)
-        ghost_df = master_df[(master_df['Source of Truth'] == 'Shopify') & (master_df['Impressions'] == 0)]
-        ghost_count = len(ghost_df)
+        # --- GLOBAL AUDIT FILTERS ---
+        with st.container():
+            st.markdown("### 🎛️ Audit Filters")
+            col_f1, col_f2 = st.columns(2)
+            with col_f1:
+                silo_filter = st.selectbox("Analyze Specific Content Silo", ["Entire Site", "/products", "/collections", "/blogs", "/offers"])
+            with col_f2:
+                min_imp_filter = st.number_input("Minimum Impressions Threshold (Ignore micro-data)", value=100, step=100)
         
-        # 2. Warning: Striking Distance (High Imp, Low CTR)
-        striking_df = master_df[(master_df['Impressions'] > 500) & (master_df['CTR'] < 2.0)]
-        striking_count = len(striking_df)
-        
-        # 3. Warning: Leaky Buckets (High Traffic, Low Engagement)
-        if 'Sessions' in master_df.columns:
-            leaky_df = master_df[(master_df['Sessions'] > 50) & (master_df['Engagement Rate'] < 45.0)]
-            leaky_count = len(leaky_df)
-        else:
-            leaky_df = pd.DataFrame()
-            leaky_count = 0
+        # Apply Filters to an Audit DataFrame
+        audit_df = master_df.copy()
+        if silo_filter != "Entire Site":
+            audit_df = audit_df[audit_df['URL'].str.contains(silo_filter, na=False)]
+            
+        total_urls = len(audit_df)
 
-        # Health Math: 100 points minus penalties based on percentage of site affected
-        ghost_penalty = (ghost_count / total_urls) * 50 if total_urls > 0 else 0
-        leaky_penalty = (leaky_count / total_urls) * 30 if total_urls > 0 else 0
-        striking_penalty = (striking_count / total_urls) * 20 if total_urls > 0 else 0
+        # --- THE AUDIT ALGORITHMS ---
+        # 1. Technical: Ghost Products
+        ghost_df = audit_df[(audit_df['Source of Truth'] == 'Shopify') & (audit_df['Impressions'] == 0)]
         
-        health_score = max(0, round(100 - (ghost_penalty + leaky_penalty + striking_penalty)))
+        # 2. Content: Keyword Cannibalization (Multiple URLs, Same Top Query)
+        cannibal_df = pd.DataFrame()
+        if 'Top Query (The Lure)' in audit_df.columns:
+            # Filter out 0s and empty queries
+            valid_queries = audit_df[(audit_df['Top Query (The Lure)'] != 0) & (audit_df['Top Query (The Lure)'] != '0') & (audit_df['Top Query (The Lure)'].notna())]
+            query_counts = valid_queries['Top Query (The Lure)'].value_counts()
+            duplicate_queries = query_counts[query_counts > 1].index
+            cannibal_df = valid_queries[valid_queries['Top Query (The Lure)'].isin(duplicate_queries)].sort_values('Top Query (The Lure)')
+
+        # 3. Content: Striking Distance (Imp > Threshold, CTR < 2.0%)
+        striking_df = audit_df[(audit_df['Impressions'] >= min_imp_filter) & (audit_df['CTR'] > 0) & (audit_df['CTR'] < 2.0)]
+        
+        # 4. Content: Click Zombies (Imp > Threshold, 0 Clicks)
+        zombie_df = audit_df[(audit_df['Impressions'] >= min_imp_filter) & ((audit_df['Clicks'] == 0) | audit_df['Clicks'].isna())]
+
+        # 5. UX: Leaky Buckets (High Sessions, Low Engagement)
+        leaky_df = pd.DataFrame()
+        if 'Sessions' in audit_df.columns and 'Engagement Rate' in audit_df.columns:
+            leaky_df = audit_df[(audit_df['Sessions'] >= 30) & (audit_df['Engagement Rate'] < 45.0) & (audit_df['Engagement Rate'] > 0)]
+
+        # --- SCORECARD ALGORITHM ---
+        ghost_penalty = (len(ghost_df) / total_urls) * 30 if total_urls > 0 else 0
+        cannibal_penalty = (len(cannibal_df) / total_urls) * 20 if total_urls > 0 else 0
+        striking_penalty = (len(striking_df) / total_urls) * 25 if total_urls > 0 else 0
+        leaky_penalty = (len(leaky_df) / total_urls) * 25 if total_urls > 0 else 0
+        
+        health_score = max(0, round(100 - (ghost_penalty + cannibal_penalty + striking_penalty + leaky_penalty)))
+
+        st.divider()
 
         # --- SCORECARD DISPLAY ---
         col1, col2 = st.columns([1, 3])
         with col1:
-            # Color-coded metric based on score
-            if health_score >= 80:
-                st.metric("Site Health Score", f"{health_score}/100", "Excellent", delta_color="normal")
-            elif health_score >= 50:
-                st.metric("Site Health Score", f"{health_score}/100", "-Needs Work", delta_color="off")
-            else:
-                st.metric("Site Health Score", f"{health_score}/100", "Critical", delta_color="inverse")
+            if health_score >= 80: st.metric("Site Health Score", f"{health_score}/100", "Excellent", delta_color="normal")
+            elif health_score >= 50: st.metric("Site Health Score", f"{health_score}/100", "Needs Work", delta_color="off")
+            else: st.metric("Site Health Score", f"{health_score}/100", "Critical", delta_color="inverse")
                 
         with col2:
-            st.markdown(f"**Audit Summary:** Scanned **{total_urls}** URLs. Found **{ghost_count}** critical errors and **{leaky_count + striking_count}** optimization warnings.")
+            st.markdown(f"**Audit Summary:** Scanned **{total_urls}** URLs in the `{silo_filter}` sector.")
             st.progress(health_score / 100.0)
 
-        st.divider()
+        # --- TABBED AUDIT REPORTS ---
+        st.write("---")
+        audit_tab1, audit_tab2, audit_tab3 = st.tabs(["⚙️ Technical SEO", "📝 Content & Meta", "🖱️ UX & Conversions"])
 
-        # --- CRITICAL FIXES ---
-        st.error(f"🛑 CRITICAL ERRORS ({ghost_count} Issues)")
-        with st.expander("View Ghost Products (Orphaned / Not Indexed)"):
-            st.markdown("**Issue:** These URLs exist in your Shopify backend but are receiving 0 impressions from Google. They are likely orphaned or blocked.")
+        with audit_tab1:
+            st.subheader(f"Ghost Pages ({len(ghost_df)} Issues)")
+            st.markdown("**Diagnosis:** These URLs exist in the database but have 0 impressions in Google. They are either blocked by `robots.txt`, set to `noindex`, or entirely orphaned.")
             if not ghost_df.empty:
-                st.dataframe(ghost_df[['URL', 'Source of Truth', 'Impressions', 'Clicks']], width='stretch')
+                st.dataframe(ghost_df[['URL', 'Source of Truth', 'Impressions']], width='stretch')
             else:
-                st.success("No Ghost Products found! Your inventory is perfectly indexed.")
+                st.success("Perfect indexation! No ghost pages found in this silo.")
 
-        # --- WARNINGS ---
-        st.warning(f"⚠️ WARNINGS ({striking_count + leaky_count} Issues)")
-        with st.expander(f"View Striking Distance Pages ({striking_count})"):
-            st.markdown("**Issue:** High visibility (Google likes them), but users aren't clicking (Bad Meta Titles). Needs immediate text optimization.")
+        with audit_tab2:
+            st.subheader(f"Keyword Cannibalization ({len(cannibal_df)} URLs fighting)")
+            st.markdown("**Diagnosis:** Multiple URLs on your site are ranking as the top page for the exact same query. Google is confused about which page is the authority. You need to consolidate them or update the meta titles to target different variations.")
+            if not cannibal_df.empty:
+                st.dataframe(cannibal_df[['Top Query (The Lure)', 'URL', 'Impressions', 'Clicks', 'Position']], width='stretch')
+            else:
+                st.success("No keyword cannibalization detected.")
+
+            st.write("---")
+            
+            st.subheader(f"Striking Distance ({len(striking_df)} Issues)")
+            st.markdown("**Diagnosis:** Ranking decently (High Impressions) but humans aren't clicking (CTR < 2%). The Meta Title or Description needs a rewrite.")
             if not striking_df.empty:
                 cols = ['URL', 'Impressions', 'CTR', 'Position']
                 if 'Top Query (The Lure)' in striking_df.columns: cols.append('Top Query (The Lure)')
                 st.dataframe(striking_df[cols].sort_values('Impressions', ascending=False), width='stretch')
             else:
                 st.success("No Striking Distance issues.")
+                
+            st.write("---")
+            
+            st.subheader(f"Click Zombies ({len(zombie_df)} Issues)")
+            st.markdown("**Diagnosis:** Showing up in Google search results, but generating exactly ZERO clicks. Investigate intent mismatch immediately.")
+            if not zombie_df.empty:
+                z_cols = ['URL', 'Impressions', 'Position']
+                if 'Top Query (The Lure)' in zombie_df.columns: z_cols.append('Top Query (The Lure)')
+                st.dataframe(zombie_df[z_cols].sort_values('Impressions', ascending=False), width='stretch')
 
-        with st.expander(f"View Leaky Buckets ({leaky_count})"):
-            st.markdown("**Issue:** Users are landing on these pages but leaving immediately (<45% Engagement). Needs better internal linking or UX.")
+        with audit_tab3:
+            st.subheader(f"Leaky Buckets ({len(leaky_df)} Issues)")
+            st.markdown("**Diagnosis:** High traffic sessions (>30) but the Engagement Rate is terrible (<45%). The user clicked, but the page content didn't deliver what the Meta Title promised.")
             if not leaky_df.empty:
                 st.dataframe(leaky_df[['URL', 'Sessions', 'Engagement Rate', 'Conversions']].sort_values('Sessions', ascending=False), width='stretch')
             else:
-                st.success("No Leaky Buckets found.")
+                st.success("No severe leaky buckets found.")
 
-        # --- NOTICES ---
-        st.info("💡 NOTICES (Opportunities)")
-        with st.expander("View Hidden Gems"):
-            gem_df = master_df[(master_df['Conversions'] > 0) & (master_df['Position'] > 5.0)] if 'Conversions' in master_df.columns else pd.DataFrame()
-            st.markdown("**Opportunity:** These pages actually generate conversions, but rank poorly. Pass PageRank to these URLs to scale revenue.")
+            st.write("---")
+            st.subheader("Hidden Gems (Conversion Drivers)")
+            gem_df = audit_df[(audit_df['Conversions'] > 0) & (audit_df['Position'] > 5.0)] if 'Conversions' in audit_df.columns else pd.DataFrame()
+            st.markdown("**Diagnosis:** Pages with poor SEO rankings, but when people *do* find them, they convert! Add internal backlinks to these URLs immediately to scale revenue.")
             if not gem_df.empty:
                 st.dataframe(gem_df[['URL', 'Conversions', 'Sessions', 'Position']], width='stretch')
             else:
-                st.write("Need more conversion data to identify Hidden Gems.")
+                st.info("Awaiting more GA4 conversion data to identify gems.")
 
     else:
-        st.warning("Awaiting full dataset to generate the Health Audit...")
-
-# --- PAGE 3: ACTION MATRIX (TREASURE MAP) ---
-# --- PAGE 2: ACTION MATRIX (TREASURE MAP) ---
-elif page == "Action Matrix (Treasure Map)":
-    st.title("🗺️ SEO Treasure Map")
-    st.markdown("Automated algorithmic insights based on combined metrics.")
-
-    if not master_df.empty and 'Impressions' in master_df.columns and 'Sessions' in master_df.columns:
-        min_impressions = 500
-        poor_ctr = 2.0
-        min_sessions = 50
-        poor_engagement = 45.0
-
-        st.divider()
-
-        # 1. Striking Distance
-        st.subheader("🎯 Striking Distance (Needs Title/Meta Optimization)")
-        st.info(f"High visibility (>{min_impressions} Imp), but low clicks (<{poor_ctr}% CTR).")
-        striking_df = master_df[(master_df['Impressions'] > min_impressions) & (master_df['CTR'] < poor_ctr)]
-        striking_df = striking_df.sort_values(by='Impressions', ascending=False)
-        st.dataframe(striking_df[['URL', 'Impressions', 'CTR', 'Position']], width='stretch')
-
-        st.divider()
-
-        # 2. Leaky Buckets
-        st.subheader("🪣 Leaky Buckets (Needs CRO & Content Updates)")
-        st.info(f"High traffic (>{min_sessions} Sessions), but users are bouncing (<{poor_engagement}% Engagement).")
-        leaky_df = master_df[(master_df['Sessions'] > min_sessions) & (master_df['Engagement Rate'] < poor_engagement)]
-        leaky_df = leaky_df.sort_values(by='Sessions', ascending=False)
-        st.dataframe(leaky_df[['URL', 'Sessions', 'Engagement Rate', 'Conversions']], width='stretch')
-
-        st.divider()
-
-        # 3. Hidden Gems
-        st.subheader("💎 Hidden Gems (Needs Internal Link Injections)")
-        st.info("These pages generate conversions but rank poorly. Boost them with internal links!")
-        gem_df = master_df[(master_df['Conversions'] > 0) & (master_df['Position'] > 5.0)]
-        gem_df = gem_df.sort_values(by='Conversions', ascending=False)
-        st.dataframe(gem_df[['URL', 'Conversions', 'Sessions', 'Position', 'Clicks']], width='stretch')
-
-        st.divider()
-
-        # 4. Ghost Products (The Indexation Gap)
-        st.subheader("👻 Ghost Products (The Indexation Gap)")
-        st.info("These products exist in Shopify and can be purchased, but Google Search Console shows 0 impressions. They are completely invisible to organic search!")
-        
-        if 'Source of Truth' in master_df.columns:
-            ghost_df = master_df[(master_df['Source of Truth'] == 'Shopify') & (master_df['Impressions'] == 0)]
-            st.dataframe(ghost_df[['URL', 'Source of Truth', 'Impressions', 'Clicks']], width='stretch')
-        else:
-            st.warning("Shopify data missing. Ensure your Shopify token is correct.")
-
-    else:
-        st.warning("Awaiting full dataset to generate insights...")
+        st.warning("Awaiting full dataset to generate the Advanced Audit...")
 
 # --- PAGE 4: INTERNAL LINK GRAPH ---
 elif page == "Internal Link Graph":
