@@ -44,7 +44,8 @@ st.sidebar.title("⚙️ SEO Engine")
 page = st.sidebar.radio("Navigation", [
     "Overview Dashboard", 
     "🚨 Advanced Site Audit", 
-    "Internal Link Graph"
+    "Internal Link Graph",
+    "📅 Weekly Impact Report"  # NEW PAGE ADDED HERE
 ])
 
 # --- PAGE 1: OVERVIEW DASHBOARD ---
@@ -109,14 +110,12 @@ if page == "Overview Dashboard":
     else:
         st.warning("Fetching Data... Please wait or check authentication.")
 
-# --- PAGE 2: ADVANCED SITE AUDIT (THE AUDITOR) ---
+# --- PAGE 2: ADVANCED SITE AUDIT ---
 elif page == "🚨 Advanced Site Audit":
     st.title("🩺 Advanced SEO Auditor")
     st.markdown("Automated SEO triage mapping Technical, On-Page, and UX issues to exact URLs.")
 
     if not master_df.empty and 'Impressions' in master_df.columns:
-        
-        # --- GLOBAL AUDIT FILTERS ---
         with st.container():
             st.markdown("### 🎛️ Audit Filters")
             col_f1, col_f2 = st.columns(2)
@@ -125,38 +124,28 @@ elif page == "🚨 Advanced Site Audit":
             with col_f2:
                 min_imp_filter = st.number_input("Minimum Impressions Threshold (Ignore micro-data)", value=100, step=100)
         
-        # Apply Filters to an Audit DataFrame
         audit_df = master_df.copy()
         if silo_filter != "Entire Site":
             audit_df = audit_df[audit_df['URL'].str.contains(silo_filter, na=False)]
             
         total_urls = len(audit_df)
 
-        # --- THE AUDIT ALGORITHMS ---
-        # 1. Technical: Ghost Products
         ghost_df = audit_df[(audit_df['Source of Truth'] == 'Shopify') & (audit_df['Impressions'] == 0)]
         
-        # 2. Content: Keyword Cannibalization (Multiple URLs, Same Top Query)
         cannibal_df = pd.DataFrame()
         if 'Top Query (The Lure)' in audit_df.columns:
-            # Filter out 0s and empty queries
             valid_queries = audit_df[(audit_df['Top Query (The Lure)'] != 0) & (audit_df['Top Query (The Lure)'] != '0') & (audit_df['Top Query (The Lure)'].notna())]
             query_counts = valid_queries['Top Query (The Lure)'].value_counts()
             duplicate_queries = query_counts[query_counts > 1].index
             cannibal_df = valid_queries[valid_queries['Top Query (The Lure)'].isin(duplicate_queries)].sort_values('Top Query (The Lure)')
 
-        # 3. Content: Striking Distance (Imp > Threshold, CTR < 2.0%)
         striking_df = audit_df[(audit_df['Impressions'] >= min_imp_filter) & (audit_df['CTR'] > 0) & (audit_df['CTR'] < 2.0)]
-        
-        # 4. Content: Click Zombies (Imp > Threshold, 0 Clicks)
         zombie_df = audit_df[(audit_df['Impressions'] >= min_imp_filter) & ((audit_df['Clicks'] == 0) | audit_df['Clicks'].isna())]
 
-        # 5. UX: Leaky Buckets (High Sessions, Low Engagement)
         leaky_df = pd.DataFrame()
         if 'Sessions' in audit_df.columns and 'Engagement Rate' in audit_df.columns:
             leaky_df = audit_df[(audit_df['Sessions'] >= 30) & (audit_df['Engagement Rate'] < 45.0) & (audit_df['Engagement Rate'] > 0)]
 
-        # --- SCORECARD ALGORITHM ---
         ghost_penalty = (len(ghost_df) / total_urls) * 30 if total_urls > 0 else 0
         cannibal_penalty = (len(cannibal_df) / total_urls) * 20 if total_urls > 0 else 0
         striking_penalty = (len(striking_df) / total_urls) * 25 if total_urls > 0 else 0
@@ -166,7 +155,6 @@ elif page == "🚨 Advanced Site Audit":
 
         st.divider()
 
-        # --- SCORECARD DISPLAY ---
         col1, col2 = st.columns([1, 3])
         with col1:
             if health_score >= 80: st.metric("Site Health Score", f"{health_score}/100", "Excellent", delta_color="normal")
@@ -177,41 +165,27 @@ elif page == "🚨 Advanced Site Audit":
             st.markdown(f"**Audit Summary:** Scanned **{total_urls}** URLs in the `{silo_filter}` sector.")
             st.progress(health_score / 100.0)
 
-        # --- TABBED AUDIT REPORTS ---
         st.write("---")
         audit_tab1, audit_tab2, audit_tab3 = st.tabs(["⚙️ Technical SEO", "📝 Content & Meta", "🖱️ UX & Conversions"])
 
         with audit_tab1:
             st.subheader(f"Ghost Pages ({len(ghost_df)} Issues)")
-            st.markdown("**Diagnosis:** These URLs exist in the database but have 0 impressions in Google. They are either blocked by `robots.txt`, set to `noindex`, or entirely orphaned.")
-            if not ghost_df.empty:
-                st.dataframe(ghost_df[['URL', 'Source of Truth', 'Impressions']], width='stretch')
-            else:
-                st.success("Perfect indexation! No ghost pages found in this silo.")
+            if not ghost_df.empty: st.dataframe(ghost_df[['URL', 'Source of Truth', 'Impressions']], width='stretch')
+            else: st.success("Perfect indexation! No ghost pages found in this silo.")
 
         with audit_tab2:
             st.subheader(f"Keyword Cannibalization ({len(cannibal_df)} URLs fighting)")
-            st.markdown("**Diagnosis:** Multiple URLs on your site are ranking as the top page for the exact same query. Google is confused about which page is the authority. You need to consolidate them or update the meta titles to target different variations.")
-            if not cannibal_df.empty:
-                st.dataframe(cannibal_df[['Top Query (The Lure)', 'URL', 'Impressions', 'Clicks', 'Position']], width='stretch')
-            else:
-                st.success("No keyword cannibalization detected.")
-
+            if not cannibal_df.empty: st.dataframe(cannibal_df[['Top Query (The Lure)', 'URL', 'Impressions', 'Clicks', 'Position']], width='stretch')
+            else: st.success("No keyword cannibalization detected.")
             st.write("---")
-            
             st.subheader(f"Striking Distance ({len(striking_df)} Issues)")
-            st.markdown("**Diagnosis:** Ranking decently (High Impressions) but humans aren't clicking (CTR < 2%). The Meta Title or Description needs a rewrite.")
             if not striking_df.empty:
                 cols = ['URL', 'Impressions', 'CTR', 'Position']
                 if 'Top Query (The Lure)' in striking_df.columns: cols.append('Top Query (The Lure)')
                 st.dataframe(striking_df[cols].sort_values('Impressions', ascending=False), width='stretch')
-            else:
-                st.success("No Striking Distance issues.")
-                
+            else: st.success("No Striking Distance issues.")
             st.write("---")
-            
             st.subheader(f"Click Zombies ({len(zombie_df)} Issues)")
-            st.markdown("**Diagnosis:** Showing up in Google search results, but generating exactly ZERO clicks. Investigate intent mismatch immediately.")
             if not zombie_df.empty:
                 z_cols = ['URL', 'Impressions', 'Position']
                 if 'Top Query (The Lure)' in zombie_df.columns: z_cols.append('Top Query (The Lure)')
@@ -219,25 +193,18 @@ elif page == "🚨 Advanced Site Audit":
 
         with audit_tab3:
             st.subheader(f"Leaky Buckets ({len(leaky_df)} Issues)")
-            st.markdown("**Diagnosis:** High traffic sessions (>30) but the Engagement Rate is terrible (<45%). The user clicked, but the page content didn't deliver what the Meta Title promised.")
-            if not leaky_df.empty:
-                st.dataframe(leaky_df[['URL', 'Sessions', 'Engagement Rate', 'Conversions']].sort_values('Sessions', ascending=False), width='stretch')
-            else:
-                st.success("No severe leaky buckets found.")
-
+            if not leaky_df.empty: st.dataframe(leaky_df[['URL', 'Sessions', 'Engagement Rate', 'Conversions']].sort_values('Sessions', ascending=False), width='stretch')
+            else: st.success("No severe leaky buckets found.")
             st.write("---")
             st.subheader("Hidden Gems (Conversion Drivers)")
             gem_df = audit_df[(audit_df['Conversions'] > 0) & (audit_df['Position'] > 5.0)] if 'Conversions' in audit_df.columns else pd.DataFrame()
-            st.markdown("**Diagnosis:** Pages with poor SEO rankings, but when people *do* find them, they convert! Add internal backlinks to these URLs immediately to scale revenue.")
-            if not gem_df.empty:
-                st.dataframe(gem_df[['URL', 'Conversions', 'Sessions', 'Position']], width='stretch')
-            else:
-                st.info("Awaiting more GA4 conversion data to identify gems.")
+            if not gem_df.empty: st.dataframe(gem_df[['URL', 'Conversions', 'Sessions', 'Position']], width='stretch')
+            else: st.info("Awaiting more GA4 conversion data to identify gems.")
 
     else:
         st.warning("Awaiting full dataset to generate the Advanced Audit...")
 
-# --- PAGE 4: INTERNAL LINK GRAPH ---
+# --- PAGE 3: INTERNAL LINK GRAPH ---
 elif page == "Internal Link Graph":
     st.markdown("""
     ## 🕸️ Technical Link Topology
@@ -378,3 +345,75 @@ elif page == "Internal Link Graph":
     </body>
     """
     components.html(d3_html, height=850)
+
+# --- PAGE 5: WEEKLY IMPACT REPORT ---
+elif page == "📅 Weekly Impact Report":
+    st.title("📅 Saturday Executive Report")
+    st.markdown("Automated sprint review mapping effort logged to actual business impact.")
+
+    # 1. Time & Effort Tracking
+    st.subheader("⏱️ Sprint Effort")
+    t_col1, t_col2, t_col3 = st.columns([1, 1, 2])
+    with t_col1:
+        st.metric(label="Hours Logged", value="40 hrs", delta="100% capacity")
+    with t_col2:
+        st.metric(label="Days Active", value="5 Days")
+    with t_col3:
+        st.markdown("**Sprint Progress**")
+        st.progress(1.0) # Full progress bar for 40 hours
+
+    st.divider()
+
+    # 2. Executive Highlights (The "Supporting Work")
+    st.subheader("🎯 Sprint Highlights & Roadblocks")
+    h_col1, h_col2, h_col3 = st.columns(3)
+    
+    with h_col1:
+        st.success("**🚀 Engineering & Strategy**\n\nSuccessfully built and deployed the custom **Shree Shivam SEO Engine**. Connected Google Search Console, GA4, Shopify, and Notion databases. Drafted automated strategies for Q2.")
+    
+    with h_col2:
+        st.info("**📝 Content Pipeline**\n\nExecuted ongoing content strategy. Successfully published scheduled blog articles targeting non-branded intent and integrated internal linking to core product silos.")
+    
+    with h_col3:
+        st.warning("**🚧 Automation Status**\n\nAttempted deployment of Codex for large-scale content automation. API limits exceeded. Task is officially on hold until quota resets on **May 9th**.")
+
+    st.divider()
+
+    # 3. The Real-World Impact (Data from Notion Edits)
+    st.subheader("📈 The Tangible Impact (From Notion Edits)")
+    st.markdown("This calculates the live Google traffic *specifically* for the pages that were manually updated in the Notion SEO Edits database.")
+
+    if not notion_df.empty and not master_df.empty:
+        # Match Notion URLs to Master Data to calculate impact
+        impact_df = notion_df.copy()
+        impact_df['Clean_URL'] = impact_df['Page / URL'].str.replace('https://www.shreeshivam.com', '').str.replace('https://shreeshivam.com', '').str.rstrip('/').str.lower()
+        
+        merged_impact = pd.merge(impact_df, master_df, left_on='Clean_URL', right_on='URL', how='inner')
+        
+        if not merged_impact.empty:
+            edited_clicks = int(merged_impact['Clicks'].sum()) if 'Clicks' in merged_impact.columns else 0
+            edited_impressions = int(merged_impact['Impressions'].sum()) if 'Impressions' in merged_impact.columns else 0
+            edited_sessions = int(merged_impact['Sessions'].sum()) if 'Sessions' in merged_impact.columns else 0
+            
+            i_col1, i_col2, i_col3 = st.columns(3)
+            i_col1.metric("Traffic from Edited Pages", f"{edited_clicks:,} Clicks", "Direct Result")
+            i_col2.metric("Visibility from Edited Pages", f"{edited_impressions:,} Views", "Direct Result")
+            i_col3.metric("Sessions from Edited Pages", f"{edited_sessions:,} Sessions", "Direct Result")
+            
+            st.write("")
+            st.markdown("**Performance Breakdown of Edited URLs:**")
+            
+            display_cols = ['Page / URL', 'Notes / Action']
+            if 'Clicks' in merged_impact.columns: display_cols.append('Clicks')
+            if 'Impressions' in merged_impact.columns: display_cols.append('Impressions')
+            
+            # Format nicely for the report
+            report_table = merged_impact[display_cols].copy()
+            if 'Clicks' in report_table.columns: report_table['Clicks'] = report_table['Clicks'].astype(int)
+            if 'Impressions' in report_table.columns: report_table['Impressions'] = report_table['Impressions'].astype(int)
+            
+            st.dataframe(report_table.sort_values(by='Clicks', ascending=False) if 'Clicks' in report_table.columns else report_table, width='stretch')
+        else:
+            st.info("The URLs logged in Notion haven't registered traffic data in Google yet. Give it a few days for the APIs to catch up.")
+    else:
+        st.warning("Waiting for Notion and Google data to populate to calculate impact.")
