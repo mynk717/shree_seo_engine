@@ -10,13 +10,47 @@ from analysis_engine import calculate_internal_pagerank
 
 st.set_page_config(page_title="Shree Shivam SEO Engine", page_icon="📈", layout="wide")
 
+# --- 1. BRAND CONFIGURATION REGISTRY (Move this up!) ---
+BRANDS = {
+    "Shree Shivam": {
+        "ga4_id": "250904023",
+        "gsc_domain": "sc-domain:shreeshivam.com",
+        "primary_color": "#2ecc71"
+    },
+    "White Hanger": {
+        "ga4_id": "346056397",
+        "gsc_domain": "sc-domain:whitehanger.in",
+        "primary_color": "#4da8b3"
+    },
+    "Amchoor": {
+        "ga4_id": "372242148",
+        "gsc_domain": "sc-domain:amchoor.com",
+        "primary_color": "#e67e22"
+    },
+    "Luxe": {
+        "ga4_id": "533609947",
+        "gsc_domain": "https://shreeshivam.com/", 
+        "primary_color": "#9b59b6"
+    }
+}
+
+# --- 2. SIDEBAR BRAND SELECTOR ---
+st.sidebar.title("🏢 Portfolio Management")
+selected_brand_name = st.sidebar.selectbox("Select Brand to Audit", list(BRANDS.keys()))
+brand_config = BRANDS[selected_brand_name]
+
+# --- 3. UPDATED DYNAMIC DATA LOADER ---
 @st.cache_data(ttl=600) 
-def load_live_data():
+def load_brand_data(config):
+    # Pass the dynamic IDs from our config into the connectors
+    gsc_data = get_gsc_page_data(property_url=config["gsc_domain"])
+    ga4_data = get_ga4_page_data(property_id=config["ga4_id"])
+    
+    # Shopify and Notion remain global or can be filtered later
     shopify_data = get_shopify_urls()
-    gsc_data = get_gsc_page_data()
-    ga4_data = get_ga4_page_data()
     notion_data = get_notion_seo_edits()
     
+    # URL Cleaning Logic
     if not shopify_data.empty: shopify_data['URL'] = shopify_data['URL'].str.rstrip('/').str.lower()
     if not gsc_data.empty: gsc_data['URL'] = gsc_data['URL'].str.rstrip('/').str.lower()
     if not ga4_data.empty: ga4_data['URL'] = ga4_data['URL'].str.rstrip('/').str.lower()
@@ -25,21 +59,22 @@ def load_live_data():
     
     if dfs_to_merge:
         master_seo_df = reduce(lambda left, right: pd.merge(left, right, on='URL', how='outer'), dfs_to_merge)
-        if 'Source of Truth' in master_seo_df.columns:
-            master_seo_df['Source of Truth'] = master_seo_df['Source of Truth'].fillna('Unknown')
         master_seo_df = master_seo_df.fillna(0)
         
-        if 'Clicks' in master_seo_df.columns: master_seo_df['Clicks'] = master_seo_df['Clicks'].astype(int)
-        if 'Sessions' in master_seo_df.columns: master_seo_df['Sessions'] = master_seo_df['Sessions'].astype(int)
-        if 'Impressions' in master_seo_df.columns: master_seo_df['Impressions'] = master_seo_df['Impressions'].astype(int)
+        # Numeric Formatting
+        for col in ['Clicks', 'Sessions', 'Impressions']:
+            if col in master_seo_df.columns:
+                master_seo_df[col] = master_seo_df[col].astype(int)
     else:
         master_seo_df = pd.DataFrame()
         
     return master_seo_df, notion_data
 
-master_df, notion_df = load_live_data()
+# Run the loader with the selected brand's config
+master_df, notion_df = load_brand_data(brand_config)
 
-# --- SIDEBAR NAVIGATION ---
+# --- 4. NAVIGATION ---
+st.sidebar.divider()
 st.sidebar.title("⚙️ SEO Engine")
 page = st.sidebar.radio("Navigation", [
     "Overview Dashboard", 
@@ -48,7 +83,6 @@ page = st.sidebar.radio("Navigation", [
     "Internal Link Graph",
     "📅 Weekly Impact Report"
 ])
-
 # ==========================================
 # PAGE 1: OVERVIEW DASHBOARD
 # ==========================================

@@ -130,10 +130,11 @@ if __name__ == "__main__":
     print("\n🚀 Starting Daily SEO Operations...")
 
    # Task 2: Log any new manual actions
+   # Log the new Bridal Saree Guide
     engine.log_manual_edit(
-        url="https://www.shreeshivam.com/blogs/blog/face-of-shree-shivam-2026",
-        notes="Drafted human-first event blog. Added internal redirect link to top of legacy 2024 post to pass PageRank.",
+        url="https://www.shreeshivam.com/blogs/blog/wedding-saree-for-bride-the-ultimate-2026-bridal-saree-guide",
+        notes="Published ultimate 2026 bridal saree guide. Targeted commercial/informational intent for wedding sarees. Added internal links to main Saree collections.",
         status_name="Published",
         change_type="Blog Published",
-        gsc_submitted=True
+        gsc_submitted=True # Since you mentioned you already submitted it for indexation
     )

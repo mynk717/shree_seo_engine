@@ -117,8 +117,11 @@ def get_notion_seo_edits():
         print(f"Failed to fetch Notion Edits: {e}")
         return pd.DataFrame()
 
-def get_gsc_page_data(days=30):
-    """Fetches GSC data AND the Top Query for each URL."""
+def get_gsc_page_data(property_url=None, days=30):
+    """Fetches GSC data for a specific property URL."""
+    # Fallback to default if no brand is passed
+    target_property = property_url if property_url else os.getenv("GSC_PROPERTY", "sc-domain:shreeshivam.com")
+    
     try:
         creds = get_google_credentials()
         service = build('searchconsole', 'v1', credentials=creds)
@@ -126,19 +129,16 @@ def get_gsc_page_data(days=30):
         end_date = datetime.today().strftime('%Y-%m-%d')
         start_date = (datetime.today() - timedelta(days=days)).strftime('%Y-%m-%d')
 
-        # We request BOTH page and query dimensions
         request = {
             'startDate': start_date,
             'endDate': end_date,
             'dimensions': ['page', 'query'],
-            'rowLimit': 10000 # Increased limit to handle query variants
+            'rowLimit': 10000 
         }
         
-        response = service.searchanalytics().query(siteUrl=GSC_PROPERTY, body=request).execute()
+        response = service.searchanalytics().query(siteUrl=target_property, body=request).execute()
         
-        # We need to process this so we only keep the TOP query for each page
         page_data = {}
-        
         if 'rows' in response:
             for row in response['rows']:
                 full_url = row['keys'][0]
@@ -146,9 +146,12 @@ def get_gsc_page_data(days=30):
                 clicks = row['clicks']
                 impressions = row['impressions']
                 
-                url_path = full_url.replace("https://shreeshivam.com", "").replace("https://www.shreeshivam.com", "")
+                # Dynamic URL cleaning based on the property
+                clean_url = full_url.replace("https://", "").replace("http://", "").replace("www.", "")
+                # Remove the domain part to keep just the path
+                domain_to_remove = target_property.replace("sc-domain:", "")
+                url_path = "/" + clean_url.replace(domain_to_remove, "").lstrip("/")
                 
-                # If we haven't seen this URL yet, or if this query has MORE clicks than the stored one, save it
                 if url_path not in page_data:
                     page_data[url_path] = {
                         'URL': url_path,
@@ -157,29 +160,25 @@ def get_gsc_page_data(days=30):
                         'CTR': round(row['ctr'] * 100, 2),
                         'Position': round(row['position'], 1),
                         'Top Query (The Lure)': query,
-                        'Query Clicks': clicks # Tracking how dominant this query is
+                        'Query Clicks': clicks
                     }
                 else:
-                    # Add total clicks/impressions for the URL
                     page_data[url_path]['Clicks'] += clicks
                     page_data[url_path]['Impressions'] += impressions
-                    
-                    # Update Top Query if this new one is stronger
                     if clicks > page_data[url_path]['Query Clicks']:
                         page_data[url_path]['Top Query (The Lure)'] = query
                         page_data[url_path]['Query Clicks'] = clicks
 
-        # Convert our dictionary to a clean list of rows
-        rows = [data for data in page_data.values()]
-                
-        return pd.DataFrame(rows)
+        return pd.DataFrame(list(page_data.values()))
     except Exception as e:
-        print(f"GSC Error: {e}")
+        print(f"GSC Error for {target_property}: {e}")
         return pd.DataFrame()
 
-def get_ga4_page_data(days=30):
-    """Fetches GA4 data using the local token.json."""
-    if not GA4_PROPERTY_ID: 
+def get_ga4_page_data(property_id=None, days=30):
+    """Fetches GA4 data for a specific property ID."""
+    target_id = property_id if property_id else os.getenv("GA4_PROPERTY_ID")
+    
+    if not target_id: 
         return pd.DataFrame()
         
     try:
@@ -197,7 +196,7 @@ def get_ga4_page_data(days=30):
         }
         
         response = ga4_service.properties().runReport(
-            property=f"properties/{GA4_PROPERTY_ID}", 
+            property=f"properties/{target_id}", 
             body=request_body
         ).execute()
         
@@ -210,10 +209,9 @@ def get_ga4_page_data(days=30):
                     'Engagement Rate': round(float(row['metricValues'][1]['value']) * 100, 2),
                     'Conversions': float(row['metricValues'][2]['value'])
                 })
-                
         return pd.DataFrame(rows)
     except Exception as e:
-        print(f"GA4 Error: {e}")
+        print(f"GA4 Error for ID {target_id}: {e}")
         return pd.DataFrame()
 
 def get_shopify_urls():
