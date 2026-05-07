@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from shopify_token_manager import get_validated_token
+import streamlit as st
 
 # Google Auth Imports
 from google.oauth2.credentials import Credentials
@@ -33,23 +34,34 @@ SCOPES = [
 ]
 
 def get_google_credentials():
-    """Authenticates via browser popup (client_secret.json) and saves token.json."""
-    creds = None
+    """Authenticates using Streamlit Secrets (Cloud) or token.json (Local)."""
+    
+    # 1. Try Cloud Secrets First (The Bypass)
+    try:
+        if "google_oauth" in st.secrets:
+            oauth_secrets = st.secrets["google_oauth"]
+            creds = Credentials(
+                token=None,  # We leave this blank so it forces a refresh
+                refresh_token=oauth_secrets["refresh_token"],
+                token_uri="https://oauth2.googleapis.com/token",
+                client_id=oauth_secrets["client_id"],
+                client_secret=oauth_secrets["client_secret"],
+                scopes=SCOPES
+            )
+            return creds
+    except Exception as e:
+        print(f"Cloud Auth failed, falling back to local: {e}")
+
+    # 2. Fallback to Local Desktop Testing
     if os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-        
-    if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
+            from google.auth.transport.requests import Request
             creds.refresh(Request())
-        else:
-            # This triggers the browser login that works for your test account
-            flow = InstalledAppFlow.from_client_secrets_file('client_secret.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-            
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
-
-    return creds
+        return creds
+        
+    print("CRITICAL: No Google credentials found in secrets or locally.")
+    return None
 
 def get_notion_seo_edits():
     """Fetches the SEO Edit logs from Notion using the correct schema names."""
