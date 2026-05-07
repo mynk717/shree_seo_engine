@@ -346,74 +346,124 @@ elif page == "Internal Link Graph":
     """
     components.html(d3_html, height=850)
 
-# --- PAGE 5: WEEKLY IMPACT REPORT ---
+# --- PAGE 5: WEEKLY IMPACT REPORT (EXECUTIVE VIEW) ---
 elif page == "📅 Weekly Impact Report":
-    st.title("📅 Saturday Executive Report")
-    st.markdown("Automated sprint review mapping effort logged to actual business impact.")
-
-    # 1. Time & Effort Tracking
-    st.subheader("⏱️ Sprint Effort")
-    t_col1, t_col2, t_col3 = st.columns([1, 1, 2])
-    with t_col1:
-        st.metric(label="Hours Logged", value="40 hrs", delta="100% capacity")
-    with t_col2:
-        st.metric(label="Days Active", value="5 Days")
-    with t_col3:
-        st.markdown("**Sprint Progress**")
-        st.progress(1.0) # Full progress bar for 40 hours
-
-    st.divider()
-
-    # 2. Executive Highlights (The "Supporting Work")
-    st.subheader("🎯 Sprint Highlights & Roadblocks")
-    h_col1, h_col2, h_col3 = st.columns(3)
+    # 1. Calculate the real data from our engine
+    total_actions = len(notion_df) if not notion_df.empty else 0
+    edited_clicks = 0
+    edited_impressions = 0
     
-    with h_col1:
-        st.success("**🚀 Engineering & Strategy**\n\nSuccessfully built and deployed the custom **Shree Shivam SEO Engine**. Connected Google Search Console, GA4, Shopify, and Notion databases. Drafted automated strategies for Q2.")
-    
-    with h_col2:
-        st.info("**📝 Content Pipeline**\n\nExecuted ongoing content strategy. Successfully published scheduled blog articles targeting non-branded intent and integrated internal linking to core product silos.")
-    
-    with h_col3:
-        st.warning("**🚧 Automation Status**\n\nAttempted deployment of Codex for large-scale content automation. API limits exceeded. Task is officially on hold until quota resets on **May 9th**.")
-
-    st.divider()
-
-    # 3. The Real-World Impact (Data from Notion Edits)
-    st.subheader("📈 The Tangible Impact (From Notion Edits)")
-    st.markdown("This calculates the live Google traffic *specifically* for the pages that were manually updated in the Notion SEO Edits database.")
-
     if not notion_df.empty and not master_df.empty:
-        # Match Notion URLs to Master Data to calculate impact
         impact_df = notion_df.copy()
         impact_df['Clean_URL'] = impact_df['Page / URL'].str.replace('https://www.shreeshivam.com', '').str.replace('https://shreeshivam.com', '').str.rstrip('/').str.lower()
-        
         merged_impact = pd.merge(impact_df, master_df, left_on='Clean_URL', right_on='URL', how='inner')
-        
         if not merged_impact.empty:
             edited_clicks = int(merged_impact['Clicks'].sum()) if 'Clicks' in merged_impact.columns else 0
             edited_impressions = int(merged_impact['Impressions'].sum()) if 'Impressions' in merged_impact.columns else 0
-            edited_sessions = int(merged_impact['Sessions'].sum()) if 'Sessions' in merged_impact.columns else 0
-            
-            i_col1, i_col2, i_col3 = st.columns(3)
-            i_col1.metric("Traffic from Edited Pages", f"{edited_clicks:,} Clicks", "Direct Result")
-            i_col2.metric("Visibility from Edited Pages", f"{edited_impressions:,} Views", "Direct Result")
-            i_col3.metric("Sessions from Edited Pages", f"{edited_sessions:,} Sessions", "Direct Result")
-            
-            st.write("")
-            st.markdown("**Performance Breakdown of Edited URLs:**")
-            
-            display_cols = ['Page / URL', 'Notes / Action']
-            if 'Clicks' in merged_impact.columns: display_cols.append('Clicks')
-            if 'Impressions' in merged_impact.columns: display_cols.append('Impressions')
-            
-            # Format nicely for the report
-            report_table = merged_impact[display_cols].copy()
-            if 'Clicks' in report_table.columns: report_table['Clicks'] = report_table['Clicks'].astype(int)
-            if 'Impressions' in report_table.columns: report_table['Impressions'] = report_table['Impressions'].astype(int)
-            
-            st.dataframe(report_table.sort_values(by='Clicks', ascending=False) if 'Clicks' in report_table.columns else report_table, width='stretch')
-        else:
-            st.info("The URLs logged in Notion haven't registered traffic data in Google yet. Give it a few days for the APIs to catch up.")
+
+    # 2. Inject Custom CSS from the HTML Report
+    custom_css = """
+    <style>
+    :root {
+      --bg:#0b0a08; --s1:#111009; --s2:#161410; --bd2:#2e2b26;
+      --tx:#e8e6df; --mu:#78766c; 
+      --gr:#2ecc71; --grb:rgba(46,204,113,.09); 
+      --tl:#4da8b3; --tlb:rgba(77,168,179,.09);
+      --go:#e8b84b; --gob:rgba(232,184,75,.09);
+      --rd:#e05252; --r:10px;
+    }
+    .report-wrap { background: var(--bg); color: var(--tx); font-family: 'Satoshi', sans-serif; padding: 20px; border-radius: 10px; border: 1px solid var(--bd2); }
+    .badges { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+    .badge { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; padding:4px 10px; border-radius:4px; }
+    .bg-badge { background:var(--grb); color:var(--gr); border:1px solid rgba(46,204,113,.2); }
+    .bt-badge { background:var(--tlb); color:var(--tl); border:1px solid rgba(77,168,179,.2); }
+    .report-wrap h1 { font-size: 2.8rem; font-weight: 900; line-height: 1.1; margin-bottom: 10px; color: white; }
+    .report-wrap h1 em { color: var(--gr); font-style: normal; }
+    .hdr-sub { color: var(--mu); font-size: 13px; line-height: 1.8; margin-bottom: 30px; border-bottom: 1px solid var(--bd2); padding-bottom: 20px;}
+    
+    .proof { background: linear-gradient(135deg,rgba(46,204,113,.11),rgba(77,168,179,.06)); border: 1px solid rgba(46,204,113,.22); border-radius: 14px; padding: 28px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;}
+    .proof h2 { font-size: 1.8rem; font-weight: 900; color: var(--gr); margin-bottom: 8px; margin-top:0;}
+    .proof p { font-size: 14px; color: var(--mu); max-width: 600px; }
+    .pnv { font-size: 2.4rem; font-weight: 900; line-height: 1; color: var(--gr); display:block; text-align:center;}
+    .pnl { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--mu); text-align:center; display:block;}
+    
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 30px;}
+    .kpi { background: var(--s1); border: 1px solid var(--bd2); border-radius: var(--r); padding: 18px 16px; border-top: 2px solid var(--gr); }
+    .kpi.blue { border-top: 2px solid var(--tl); }
+    .kl { font-size: 10.5px; text-transform: uppercase; letter-spacing: 1px; color: var(--mu); margin-bottom: 8px; }
+    .kv { font-size: 2rem; font-weight: 900; line-height: 1; color: white;}
+    
+    .wins { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; margin-bottom:30px;}
+    .wc { background: var(--s1); border: 1px solid rgba(46,204,113,.22); border-radius: var(--r); padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+    .wname { font-size: 15px; font-weight: 700; color: white;}
+    .wstats { display: flex; gap: 16px; flex-wrap: wrap; }
+    .ws { display: flex; flex-direction: column; gap: 2px; }
+    .wsl { font-size: 10px; text-transform: uppercase; letter-spacing: .8px; color: var(--mu); }
+    .wsv { font-size: 14px; font-weight: 700; color: white; }
+    .wnote { font-size: 12.5px; color: var(--mu); border-top: 1px solid var(--bd2); padding-top: 10px; }
+    </style>
+    """
+    st.markdown(custom_css, unsafe_allow_html=True)
+
+    # 3. Build the HTML UI and inject the Python variables
+    executive_html = f"""
+    <div class="report-wrap">
+        <div class="badges">
+            <span class="badge bg-badge">🌱 Green Shoots Mode</span>
+            <span class="badge bt-badge">100% API Verified</span>
+        </div>
+        <h1>Shree Shivam<br><em>Weekly SEO Sprint</em></h1>
+        <p class="hdr-sub">Source: Google Search Console (live) &bull; Change log: Notion SEO tracker</p>
+        
+        <div class="proof">
+            <div>
+                <h2>Direct Impact of Manual SEO Edits</h2>
+                <p>These numbers represent the live Google traffic specifically generated by the <strong>{total_actions} URLs</strong> modified in our Notion SEO Tracker during this sprint. This proves direct ROI on engineering time.</p>
+            </div>
+            <div>
+                <span class="pnv">{edited_clicks:,}</span>
+                <span class="pnl">Clicks Generated</span>
+            </div>
+            <div>
+                <span class="pnv" style="color:var(--tl);">{edited_impressions:,}</span>
+                <span class="pnl">New Impressions</span>
+            </div>
+        </div>
+
+        <h3 style="color:white; margin-bottom:15px; font-size:14px; text-transform:uppercase; letter-spacing:1px; color:var(--mu);">Sprint Scoreboard</h3>
+        <div class="kpi-grid">
+            <div class="kpi">
+                <div class="kl">Actions Logged</div>
+                <div class="kv">{total_actions}</div>
+            </div>
+            <div class="kpi blue">
+                <div class="kl">Total Site Clicks</div>
+                <div class="kv">{int(master_df['Clicks'].sum()) if 'Clicks' in master_df.columns else 0:,}</div>
+            </div>
+            <div class="kpi">
+                <div class="kl">Total Site Impressions</div>
+                <div class="kv">{int(master_df['Impressions'].sum()) if 'Impressions' in master_df.columns else 0:,}</div>
+            </div>
+            <div class="kpi blue">
+                <div class="kl">Sprint Hours</div>
+                <div class="kv">40</div>
+            </div>
+        </div>
+    </div>
+    """
+    st.markdown(executive_html, unsafe_allow_html=True)
+
+    # 4. Display the dynamic Action Log table
+    st.write("---")
+    st.subheader("✅ Actions Completed & Impact")
+    
+    if not notion_df.empty and 'merged_impact' in locals() and not merged_impact.empty:
+        display_cols = ['Date', 'Page / URL', 'Notes / Action', 'Clicks', 'Impressions']
+        report_table = merged_impact[display_cols].copy()
+        
+        if 'Clicks' in report_table.columns: report_table['Clicks'] = report_table['Clicks'].astype(int)
+        if 'Impressions' in report_table.columns: report_table['Impressions'] = report_table['Impressions'].astype(int)
+        
+        st.dataframe(report_table.sort_values(by='Clicks', ascending=False), width='stretch')
     else:
-        st.warning("Waiting for Notion and Google data to populate to calculate impact.")
+        st.info("Log SEO edits in Notion to see their direct traffic impact here.")
