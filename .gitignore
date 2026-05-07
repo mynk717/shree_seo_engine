@@ -1,0 +1,10 @@
+# API Keys and Secrets
+.env
+.env.txt
+client_secret.json
+token.json
+shopify_token_cache.json
+
+# Python Caches
+__pycache__/
+*.pyc
