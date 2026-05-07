@@ -361,109 +361,101 @@ elif page == "📅 Weekly Impact Report":
             edited_clicks = int(merged_impact['Clicks'].sum()) if 'Clicks' in merged_impact.columns else 0
             edited_impressions = int(merged_impact['Impressions'].sum()) if 'Impressions' in merged_impact.columns else 0
 
-    # 2. Inject Custom CSS from the HTML Report
-    custom_css = """
-    <style>
-    :root {
-      --bg:#0b0a08; --s1:#111009; --s2:#161410; --bd2:#2e2b26;
-      --tx:#e8e6df; --mu:#78766c; 
-      --gr:#2ecc71; --grb:rgba(46,204,113,.09); 
-      --tl:#4da8b3; --tlb:rgba(77,168,179,.09);
-      --go:#e8b84b; --gob:rgba(232,184,75,.09);
-      --rd:#e05252; --r:10px;
-    }
-    .report-wrap { background: var(--bg); color: var(--tx); font-family: 'Satoshi', sans-serif; padding: 20px; border-radius: 10px; border: 1px solid var(--bd2); }
-    .badges { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
-    .badge { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; padding:4px 10px; border-radius:4px; }
-    .bg-badge { background:var(--grb); color:var(--gr); border:1px solid rgba(46,204,113,.2); }
-    .bt-badge { background:var(--tlb); color:var(--tl); border:1px solid rgba(77,168,179,.2); }
-    .report-wrap h1 { font-size: 2.8rem; font-weight: 900; line-height: 1.1; margin-bottom: 10px; color: white; }
-    .report-wrap h1 em { color: var(--gr); font-style: normal; }
-    .hdr-sub { color: var(--mu); font-size: 13px; line-height: 1.8; margin-bottom: 30px; border-bottom: 1px solid var(--bd2); padding-bottom: 20px;}
-    
-    .proof { background: linear-gradient(135deg,rgba(46,204,113,.11),rgba(77,168,179,.06)); border: 1px solid rgba(46,204,113,.22); border-radius: 14px; padding: 28px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;}
-    .proof h2 { font-size: 1.8rem; font-weight: 900; color: var(--gr); margin-bottom: 8px; margin-top:0;}
-    .proof p { font-size: 14px; color: var(--mu); max-width: 600px; }
-    .pnv { font-size: 2.4rem; font-weight: 900; line-height: 1; color: var(--gr); display:block; text-align:center;}
-    .pnl { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--mu); text-align:center; display:block;}
-    
-    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 30px;}
-    .kpi { background: var(--s1); border: 1px solid var(--bd2); border-radius: var(--r); padding: 18px 16px; border-top: 2px solid var(--gr); }
-    .kpi.blue { border-top: 2px solid var(--tl); }
-    .kl { font-size: 10.5px; text-transform: uppercase; letter-spacing: 1px; color: var(--mu); margin-bottom: 8px; }
-    .kv { font-size: 2rem; font-weight: 900; line-height: 1; color: white;}
-    
-    .wins { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; margin-bottom:30px;}
-    .wc { background: var(--s1); border: 1px solid rgba(46,204,113,.22); border-radius: var(--r); padding: 18px; display: flex; flex-direction: column; gap: 12px; }
-    .wname { font-size: 15px; font-weight: 700; color: white;}
-    .wstats { display: flex; gap: 16px; flex-wrap: wrap; }
-    .ws { display: flex; flex-direction: column; gap: 2px; }
-    .wsl { font-size: 10px; text-transform: uppercase; letter-spacing: .8px; color: var(--mu); }
-    .wsv { font-size: 14px; font-weight: 700; color: white; }
-    .wnote { font-size: 12.5px; color: var(--mu); border-top: 1px solid var(--bd2); padding-top: 10px; }
-    </style>
-    """
-    st.markdown(custom_css, unsafe_allow_html=True)
+    # 2. Inject Custom CSS (Global Styles)
+    st.markdown("""
+<style>
+.proof-box {
+    background: linear-gradient(135deg, rgba(46,204,113,.11), rgba(77,168,179,.06));
+    border: 1px solid rgba(46,204,113,.22);
+    border-radius: 14px;
+    padding: 25px;
+    margin-bottom: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+.proof-text h2 { margin: 0 0 8px 0; color: #2ecc71; font-size: 1.8rem; font-weight: 900; }
+.proof-text p { margin: 0; color: #a09f98; max-width: 600px; font-size: 14px; }
+.proof-stat { text-align: center; min-width: 120px; }
+.proof-val { font-size: 2.5rem; font-weight: 900; line-height: 1; }
+.proof-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #78766c; margin-top: 4px; }
+.kpi-card {
+    background: #111009;
+    border: 1px solid #2e2b26;
+    padding: 15px 20px;
+    border-radius: 10px;
+    border-top: 3px solid #2ecc71;
+}
+.kpi-card.blue { border-top: 3px solid #4da8b3; }
+.kpi-val { font-size: 2rem; font-weight: 900; color: white; line-height: 1.2; }
+.kpi-lbl { font-size: 11px; text-transform: uppercase; color: #78766c; letter-spacing: 1px; margin-bottom: 5px; }
+.badge-green { background: rgba(46,204,113,.1); color: #2ecc71; padding: 4px 10px; border-radius: 4px; font-size: 10px; text-transform: uppercase; border: 1px solid rgba(46,204,113,.2); font-weight: bold; margin-right: 8px; }
+.badge-blue { background: rgba(77,168,179,.1); color: #4da8b3; padding: 4px 10px; border-radius: 4px; font-size: 10px; text-transform: uppercase; border: 1px solid rgba(77,168,179,.2); font-weight: bold; }
+</style>
+    """, unsafe_allow_html=True)
 
-    # 3. Build the HTML UI and inject the Python variables
-    executive_html = f"""
-    <div class="report-wrap">
-        <div class="badges">
-            <span class="badge bg-badge">🌱 Green Shoots Mode</span>
-            <span class="badge bt-badge">100% API Verified</span>
-        </div>
-        <h1>Shree Shivam<br><em>Weekly SEO Sprint</em></h1>
-        <p class="hdr-sub">Source: Google Search Console (live) &bull; Change log: Notion SEO tracker</p>
-        
-        <div class="proof">
-            <div>
-                <h2>Direct Impact of Manual SEO Edits</h2>
-                <p>These numbers represent the live Google traffic specifically generated by the <strong>{total_actions} URLs</strong> modified in our Notion SEO Tracker during this sprint. This proves direct ROI on engineering time.</p>
-            </div>
-            <div>
-                <span class="pnv">{edited_clicks:,}</span>
-                <span class="pnl">Clicks Generated</span>
-            </div>
-            <div>
-                <span class="pnv" style="color:var(--tl);">{edited_impressions:,}</span>
-                <span class="pnl">New Impressions</span>
-            </div>
-        </div>
+    # 3. Build Header
+    st.markdown(f"""
+<div>
+    <span class="badge-green">🌱 Green Shoots Mode</span>
+    <span class="badge-blue">100% API Verified</span>
+</div>
+<h1 style="margin: 15px 0 5px 0; font-size: 2.8rem; font-weight: 900; line-height: 1.1;">Shree Shivam <em style="color: #2ecc71; font-style: normal;">Weekly SEO Sprint</em></h1>
+<p style="color: #78766c; font-size: 13px; margin-bottom: 25px;">Source: Google Search Console (live) &bull; Change log: Notion SEO tracker</p>
+    """, unsafe_allow_html=True)
 
-        <h3 style="color:white; margin-bottom:15px; font-size:14px; text-transform:uppercase; letter-spacing:1px; color:var(--mu);">Sprint Scoreboard</h3>
-        <div class="kpi-grid">
-            <div class="kpi">
-                <div class="kl">Actions Logged</div>
-                <div class="kv">{total_actions}</div>
-            </div>
-            <div class="kpi blue">
-                <div class="kl">Total Site Clicks</div>
-                <div class="kv">{int(master_df['Clicks'].sum()) if 'Clicks' in master_df.columns else 0:,}</div>
-            </div>
-            <div class="kpi">
-                <div class="kl">Total Site Impressions</div>
-                <div class="kv">{int(master_df['Impressions'].sum()) if 'Impressions' in master_df.columns else 0:,}</div>
-            </div>
-            <div class="kpi blue">
-                <div class="kl">Sprint Hours</div>
-                <div class="kv">40</div>
-            </div>
+    # 4. Build Proof Box
+    st.markdown(f"""
+<div class="proof-box">
+    <div class="proof-text">
+        <h2>Direct Impact of Manual SEO Edits</h2>
+        <p>These numbers represent the live Google traffic specifically generated by the <strong>{total_actions} URLs</strong> modified in our Notion SEO Tracker during this sprint. This proves direct ROI on engineering time.</p>
+    </div>
+    <div style="display: flex; gap: 30px; flex-wrap: wrap;">
+        <div class="proof-stat">
+            <div class="proof-val" style="color: #2ecc71;">{edited_clicks:,}</div>
+            <div class="proof-lbl">Clicks Generated</div>
+        </div>
+        <div class="proof-stat">
+            <div class="proof-val" style="color: #4da8b3;">{edited_impressions:,}</div>
+            <div class="proof-lbl">New Impressions</div>
         </div>
     </div>
-    """
-    st.markdown(executive_html, unsafe_allow_html=True)
+</div>
+    """, unsafe_allow_html=True)
 
-    # 4. Display the dynamic Action Log table
+    # 5. Build Flexible KPI Grid using Streamlit Native Columns
+    st.markdown("<h3 style='color: white; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #78766c; margin-bottom: 15px;'>Sprint Scoreboard</h3>", unsafe_allow_html=True)
+    
+    total_site_clicks = int(master_df['Clicks'].sum()) if 'Clicks' in master_df.columns else 0
+    total_site_imp = int(master_df['Impressions'].sum()) if 'Impressions' in master_df.columns else 0
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.markdown(f"""<div class="kpi-card"><div class="kpi-lbl">Actions Logged</div><div class="kpi-val">{total_actions}</div></div>""", unsafe_allow_html=True)
+    with col2:
+        st.markdown(f"""<div class="kpi-card blue"><div class="kpi-lbl">Total Site Clicks</div><div class="kpi-val">{total_site_clicks:,}</div></div>""", unsafe_allow_html=True)
+    with col3:
+        st.markdown(f"""<div class="kpi-card"><div class="kpi-lbl">Total Impressions</div><div class="kpi-val">{total_site_imp:,}</div></div>""", unsafe_allow_html=True)
+    with col4:
+        st.markdown(f"""<div class="kpi-card blue"><div class="kpi-lbl">Sprint Hours</div><div class="kpi-val">40</div></div>""", unsafe_allow_html=True)
+
+    # 6. Display the dynamic Action Log table
     st.write("---")
     st.subheader("✅ Actions Completed & Impact")
     
     if not notion_df.empty and 'merged_impact' in locals() and not merged_impact.empty:
-        display_cols = ['Date', 'Page / URL', 'Notes / Action', 'Clicks', 'Impressions']
+        display_cols = ['Date', 'Page / URL', 'Notes / Action']
+        if 'Clicks' in merged_impact.columns: display_cols.append('Clicks')
+        if 'Impressions' in merged_impact.columns: display_cols.append('Impressions')
+        
         report_table = merged_impact[display_cols].copy()
         
         if 'Clicks' in report_table.columns: report_table['Clicks'] = report_table['Clicks'].astype(int)
         if 'Impressions' in report_table.columns: report_table['Impressions'] = report_table['Impressions'].astype(int)
         
-        st.dataframe(report_table.sort_values(by='Clicks', ascending=False), width='stretch')
+        st.dataframe(report_table.sort_values(by='Clicks', ascending=False) if 'Clicks' in report_table.columns else report_table, width='stretch', height=400)
     else:
         st.info("Log SEO edits in Notion to see their direct traffic impact here.")
