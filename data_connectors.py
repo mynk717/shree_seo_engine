@@ -64,7 +64,7 @@ def get_google_credentials():
 
 def get_notion_seo_edits():
     notion_token = st.secrets.get("NOTION_TOKEN") or os.getenv("NOTION_TOKEN")
-    db_id = st.secrets.get("NOTION_DB_SEO_EDITS") or os.getenv("NOTION_DB_SEO_EDITS") or "34ccbec2-7659-81e3-978c-dfd1d247a437"
+    db_id = os.getenv("NOTION_DB_SEO") or os.getenv("NOTION_DB_SEO_EDITS") or "34ccbec2-7659-81e3-978c-dfd1d247a437"
 
 
     if not notion_token or not db_id:
