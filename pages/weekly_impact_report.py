@@ -1,4 +1,3 @@
-# pages/weekly_impact_report.py
 import streamlit as st
 import pandas as pd
 
@@ -12,10 +11,26 @@ def render(master_df, notion_df):
         impact_df = notion_df.copy()
         impact_df["Clean_URL"] = (
             impact_df["Page / URL"]
+            .astype(str)
             .str.replace("https://www.shreeshivam.com", "", regex=False)
             .str.replace("https://shreeshivam.com", "", regex=False)
-            .str.rstrip("/")
+            .str.replace("www.shreeshivam.com", "", regex=False)
+            .str.replace(r"\s+", " ", regex=True)
+            .str.strip()
             .str.lower()
+        )
+
+        master_df = master_df.copy()
+        master_df["URL"] = (
+            master_df["URL"]
+            .astype(str)
+            .str.replace("https://www.shreeshivam.com", "", regex=False)
+            .str.replace("https://shreeshivam.com", "", regex=False)
+            .str.replace("www.shreeshivam.com", "", regex=False)
+            .str.replace(r"\s+", " ", regex=True)
+            .str.strip()
+            .str.lower()
+            .str.rstrip("/")
         )
 
         merged_impact = pd.merge(
@@ -27,8 +42,10 @@ def render(master_df, notion_df):
         )
 
         if not merged_impact.empty:
-            edited_clicks = int(merged_impact["Clicks"].sum()) if "Clicks" in merged_impact.columns else 0
-            edited_impressions = int(merged_impact["Impressions"].sum()) if "Impressions" in merged_impact.columns else 0
+            if "Clicks" in merged_impact.columns:
+                edited_clicks = int(merged_impact["Clicks"].sum())
+            if "Impressions" in merged_impact.columns:
+                edited_impressions = int(merged_impact["Impressions"].sum())
 
     st.markdown(
         """

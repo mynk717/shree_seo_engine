@@ -47,6 +47,18 @@ def render(master_df, notion_df):
                     .str.lower()
                 )
 
+                master_df = master_df.copy()
+                master_df["URL"] = (
+                    master_df["URL"]
+    .astype(str)
+    .str.replace("https://www.shreeshivam.com", "", regex=False)
+    .str.replace("https://shreeshivam.com", "", regex=False)
+    .str.replace("www.shreeshivam.com", "", regex=False)
+    .str.replace(r"\s+", " ", regex=True)
+    .str.strip()
+    .str.lower()
+    .str.rstrip("/")
+)
                 merged_impact = pd.merge(
                     impact_df,
                     master_df,
