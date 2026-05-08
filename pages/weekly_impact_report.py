@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 
+
 def render(master_df, notion_df):
     total_actions = len(notion_df) if not notion_df.empty else 0
     edited_clicks = 0
@@ -18,6 +19,7 @@ def render(master_df, notion_df):
             .str.replace(r"\s+", " ", regex=True)
             .str.strip()
             .str.lower()
+            .str.rstrip("/")
         )
 
         master_df = master_df.copy()
