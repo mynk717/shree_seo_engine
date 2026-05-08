@@ -4,7 +4,8 @@
 client_secret.json
 token.json
 shopify_token_cache.json
+secrets.toml
 
 # Python Caches
 __pycache__/
-*.pyc
+*.pyc.streamlit/secrets.toml
