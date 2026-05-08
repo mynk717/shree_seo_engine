@@ -23,7 +23,7 @@ else:
     load_dotenv(r"C:\Users\shree\OneDrive\Documents\mynk\Credentials\apikeys.env.txt")
 
 # Load variables
-NOTION_TOKEN = os.getenv("NOTION_TOKEN")
+notion_token = st.secrets.get("NOTION_TOKEN") or os.getenv("NOTION_TOKEN")
 GA4_PROPERTY_ID = os.getenv("GA4_PROPERTY_ID")
 GSC_PROPERTY = os.getenv("GSC_PROPERTY", "sc-domain:shreeshivam.com")
 # Combined Scopes for both GSC and GA4
