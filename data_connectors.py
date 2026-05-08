@@ -25,8 +25,7 @@ else:
 # Load variables
 NOTION_TOKEN = os.getenv("NOTION_TOKEN")
 GA4_PROPERTY_ID = os.getenv("GA4_PROPERTY_ID")
-GSC_PROPERTY = "sc-domain:shreeshivam.com"
-
+GSC_PROPERTY = os.getenv("GSC_PROPERTY", "sc-domain:shreeshivam.com")
 # Combined Scopes for both GSC and GA4
 SCOPES = [
     'https://www.googleapis.com/auth/webmasters.readonly',
@@ -64,55 +63,86 @@ def get_google_credentials():
     return None
 
 def get_notion_seo_edits():
-    """Fetches the SEO Edit logs from Notion using the correct schema names."""
+    """Fetch SEO edit logs from Notion and normalize them for the dashboard."""
     notion_token = os.getenv("NOTION_TOKEN")
-    # Using the correct .env variable name
     db_id = os.getenv("NOTION_DB_SEO_EDITS", "34ccbec2-7659-81e3-978c-dfd1d247a437")
-    
+
     if not notion_token or not db_id:
         print("Missing Notion credentials for Edits DB.")
         return pd.DataFrame()
-        
+
     url = f"https://api.notion.com/v1/databases/{db_id}/query"
     headers = {
         "Authorization": f"Bearer {notion_token}",
         "Notion-Version": "2022-06-28",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
-    
+
+    rows = []
+    payload = {"page_size": 100}
+    has_more = True
+    next_cursor = None
+
     try:
-        response = requests.post(url, headers=headers)
-        if response.status_code == 200:
-            results = response.json().get('results', [])
-            rows = []
-            
+        while has_more:
+            if next_cursor:
+                payload["start_cursor"] = next_cursor
+
+            response = requests.post(url, headers=headers, json=payload, timeout=30)
+
+            if response.status_code != 200:
+                print(f"Notion Fetch Error: {response.text}")
+                return pd.DataFrame()
+
+            data = response.json()
+            results = data.get("results", [])
+
             for page in results:
-                props = page.get('properties', {})
-                
+                props = page.get("properties", {})
+
                 title_arr = props.get("Page / URL", {}).get("title", [])
-                page_url = title_arr[0].get("plain_text", "") if title_arr else ""
-                
+                page_url = "".join([x.get("plain_text", "") for x in title_arr]).strip()
+
                 date_obj = props.get("Changed On", {}).get("date", {})
-                changed_on = date_obj.get("start", None) if date_obj else None
-                
+                changed_on = date_obj.get("start") if date_obj else None
+
                 notes_arr = props.get("Notes", {}).get("rich_text", [])
-                notes = notes_arr[0].get("plain_text", "") if notes_arr else ""
-                
+                notes = "".join([x.get("plain_text", "") for x in notes_arr]).strip()
+
+                after_arr = props.get("After", {}).get("rich_text", [])
+                after_text = "".join([x.get("plain_text", "") for x in after_arr]).strip()
+
+                before_arr = props.get("Before", {}).get("rich_text", [])
+                before_text = "".join([x.get("plain_text", "") for x in before_arr]).strip()
+
                 status_obj = props.get("Status", {}).get("select", {})
                 status = status_obj.get("name", "") if status_obj else ""
+
+                change_type_obj = props.get("Change Type", {}).get("select", {})
+                change_type = change_type_obj.get("name", "") if change_type_obj else ""
+
+                notes_action = after_text or notes or before_text
 
                 rows.append({
                     "Date": changed_on,
                     "Status": status,
+                    "Change Type": change_type,
                     "Page / URL": page_url,
-                    "Notes / Action": notes
+                    "Notes / Action": notes_action,
                 })
-                
-            return pd.DataFrame(rows)
-        else:
-            print(f"Notion Fetch Error: {response.text}")
-            return pd.DataFrame()
-            
+
+            has_more = data.get("has_more", False)
+            next_cursor = data.get("next_cursor")
+
+        df = pd.DataFrame(rows)
+
+        if not df.empty:
+            df = df[df["Page / URL"].astype(str).str.strip() != ""].copy()
+            df["Page / URL"] = df["Page / URL"].astype(str).str.strip()
+            df["Notes / Action"] = df["Notes / Action"].fillna("").astype(str).str.strip()
+
+        return df
+
     except Exception as e:
         print(f"Failed to fetch Notion Edits: {e}")
         return pd.DataFrame()
@@ -146,10 +176,13 @@ def get_gsc_page_data(property_url=None, days=30):
                 clicks = row['clicks']
                 impressions = row['impressions']
                 
-                # Dynamic URL cleaning based on the property
+                # --- UPDATED URL CLEANING (Surgical Fix) ---
                 clean_url = full_url.replace("https://", "").replace("http://", "").replace("www.", "")
-                # Remove the domain part to keep just the path
-                domain_to_remove = target_property.replace("sc-domain:", "")
+                
+                # Dynamically determine the domain to remove based on the brand being fetched
+                domain_to_remove = target_property.replace("sc-domain:", "").replace("https://", "").replace("http://", "").replace("www.", "").rstrip("/")
+                
+                # Extract the path (e.g., /products/saree)
                 url_path = "/" + clean_url.replace(domain_to_remove, "").lstrip("/")
                 
                 if url_path not in page_data:
