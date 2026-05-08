@@ -63,7 +63,6 @@ def get_google_credentials():
     return None
 
 def get_notion_seo_edits():
-    """Fetch SEO edit logs from Notion and normalize them for the dashboard."""
     notion_token = os.getenv("NOTION_TOKEN")
     db_id = os.getenv("NOTION_DB_SEO_EDITS", "34ccbec2-7659-81e3-978c-dfd1d247a437")
 
@@ -80,40 +79,27 @@ def get_notion_seo_edits():
 
     rows = []
     payload = {"page_size": 100}
-    has_more = True
     next_cursor = None
 
     try:
-        while has_more:
+        while True:
             if next_cursor:
                 payload["start_cursor"] = next_cursor
 
             response = requests.post(url, headers=headers, json=payload, timeout=30)
-
             if response.status_code != 200:
                 print(f"Notion Fetch Error: {response.text}")
                 return pd.DataFrame()
 
             data = response.json()
-            results = data.get("results", [])
-
-            for page in results:
+            for page in data.get("results", []):
                 props = page.get("properties", {})
 
                 title_arr = props.get("Page / URL", {}).get("title", [])
-                page_url = "".join([x.get("plain_text", "") for x in title_arr]).strip()
+                page_url = "".join(x.get("plain_text", "") for x in title_arr).strip()
 
                 date_obj = props.get("Changed On", {}).get("date", {})
-                changed_on = date_obj.get("start") if date_obj else None
-
-                notes_arr = props.get("Notes", {}).get("rich_text", [])
-                notes = "".join([x.get("plain_text", "") for x in notes_arr]).strip()
-
-                after_arr = props.get("After", {}).get("rich_text", [])
-                after_text = "".join([x.get("plain_text", "") for x in after_arr]).strip()
-
-                before_arr = props.get("Before", {}).get("rich_text", [])
-                before_text = "".join([x.get("plain_text", "") for x in before_arr]).strip()
+                changed_on = date_obj.get("start")
 
                 status_obj = props.get("Status", {}).get("select", {})
                 status = status_obj.get("name", "") if status_obj else ""
@@ -121,27 +107,28 @@ def get_notion_seo_edits():
                 change_type_obj = props.get("Change Type", {}).get("select", {})
                 change_type = change_type_obj.get("name", "") if change_type_obj else ""
 
-                notes_action = after_text or notes or before_text
+                after_arr = props.get("After", {}).get("rich_text", [])
+                after_text = "".join(x.get("plain_text", "") for x in after_arr).strip()
+
+                notes_arr = props.get("Notes", {}).get("rich_text", [])
+                notes = "".join(x.get("plain_text", "") for x in notes_arr).strip()
+
+                before_arr = props.get("Before", {}).get("rich_text", [])
+                before_text = "".join(x.get("plain_text", "") for x in before_arr).strip()
 
                 rows.append({
                     "Date": changed_on,
                     "Status": status,
                     "Change Type": change_type,
                     "Page / URL": page_url,
-                    "Notes / Action": notes_action,
+                    "Notes / Action": after_text or notes or before_text,
                 })
 
-            has_more = data.get("has_more", False)
+            if not data.get("has_more"):
+                break
             next_cursor = data.get("next_cursor")
 
-        df = pd.DataFrame(rows)
-
-        if not df.empty:
-            df = df[df["Page / URL"].astype(str).str.strip() != ""].copy()
-            df["Page / URL"] = df["Page / URL"].astype(str).str.strip()
-            df["Notes / Action"] = df["Notes / Action"].fillna("").astype(str).str.strip()
-
-        return df
+        return pd.DataFrame(rows)
 
     except Exception as e:
         print(f"Failed to fetch Notion Edits: {e}")
