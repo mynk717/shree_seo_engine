@@ -64,6 +64,18 @@ def load_brand_data(brand_name):
     return master_seo_df, notion_data
 
 master_df, notion_df = load_brand_data(selected_brand_name)
+st.sidebar.divider()
+st.sidebar.caption("DEBUG")
+st.write("Selected brand:", selected_brand_name)
+st.write("Master rows:", len(master_df))
+st.write("Notion rows:", len(notion_df))
+st.write("Notion columns:", list(notion_df.columns) if not notion_df.empty else [])
+if not notion_df.empty:
+    st.write("Notion sample:")
+    st.dataframe(notion_df.head(10), width="stretch")
+if not master_df.empty and "URL" in master_df.columns:
+    st.write("Master URL sample:")
+    st.write(master_df["URL"].head(20).tolist())
 
 st.sidebar.divider()
 st.sidebar.title("⚙️ SEO Engine")
