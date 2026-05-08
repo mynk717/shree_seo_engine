@@ -19,9 +19,12 @@ selected_brand_name = st.sidebar.selectbox("Select Brand to Audit", list(BRANDS.
 brand_config = BRANDS[selected_brand_name]
 
 # --- 3. UPDATED DYNAMIC DATA LOADER ---
+# --- 3. UPDATED DYNAMIC DATA LOADER ---
 @st.cache_data(ttl=600)
-def load_brand_data(_brand_config):
-    config = st.secrets["brands"][brand_config]
+def load_brand_data(_brand_name):
+    # This lookup uses the string key to find the config inside the function
+    config = st.secrets["brands"][_brand_name]
+    
     gsc_data = get_gsc_page_data(property_url=config["gsc_domain"])
     ga4_data = get_ga4_page_data(property_id=config["ga4_id"])
     
@@ -49,8 +52,8 @@ def load_brand_data(_brand_config):
         
     return master_seo_df, notion_data
 
-# Run the loader with the selected brand's config
-master_df, notion_df = load_brand_data(brand_config)
+# Run the loader with the brand name string (selected_brand_name is defined on line 18)
+master_df, notion_df = load_brand_data(selected_brand_name)
 
 # --- 4. NAVIGATION ---
 st.sidebar.divider()
