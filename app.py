@@ -2,6 +2,8 @@
 import streamlit as st
 import pandas as pd
 from functools import reduce
+import pages.week_19_green_shoots_report as week_19_green_shoots_report
+from pages.blog_performance import render as render_blog_performance
 
 from data_connectors import (
     get_notion_seo_edits,
@@ -16,12 +18,13 @@ from pages.advanced_site_audit import render as render_audit
 from pages.keyword_content_lab import render as render_keyword_lab
 from pages.internal_link_graph import render as render_link_graph
 from pages.weekly_impact_report import render as render_weekly_report
+from pages.silo_link_audit import render as render_silo_audit
 
 st.set_page_config(page_title="Shree Shivam SEO Engine", page_icon="📈", layout="wide")
 
 BRANDS = st.secrets["brands"]
 
-st.sidebar.title("🏢 Portfolio Management")
+st.sidebar.title("Portfolio Management")
 selected_brand_name = st.sidebar.selectbox("Select Brand to Audit", list(BRANDS.keys()))
 
 @st.cache_data(ttl=600)
@@ -65,7 +68,6 @@ def load_brand_data(brand_name):
 
 master_df, notion_df = load_brand_data(selected_brand_name)
 
-st.sidebar.divider()
 st.sidebar.title("⚙️ SEO Engine")
 page = st.sidebar.radio(
     "Navigation",
@@ -75,6 +77,9 @@ page = st.sidebar.radio(
         "🔬 Keyword & Content Lab",
         "Internal Link Graph",
         "📅 Weekly Impact Report",
+        "🏗️ Blog Silo & Link Audit",
+        "🟢 Week 19 Green Shoots",
+        "📊 Blog Performance",
     ],
 )
 
@@ -88,3 +93,9 @@ elif page == "Internal Link Graph":
     render_link_graph(master_df, notion_df)
 elif page == "📅 Weekly Impact Report":
     render_weekly_report(master_df, notion_df)
+elif page == "🏗️ Blog Silo & Link Audit":
+    render_silo_audit(master_df, notion_df)
+elif page == "🟢 Week 19 Green Shoots":
+    week_19_green_shoots_report.render(master_df, notion_df)
+elif page == "📊 Blog Performance":
+    render_blog_performance(master_df, notion_df)

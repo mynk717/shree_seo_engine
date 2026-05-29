@@ -5,7 +5,12 @@ client_secret.json
 token.json
 shopify_token_cache.json
 secrets.toml
+.streamlit/secrets.toml
 
 # Python Caches
 __pycache__/
-*.pyc.streamlit/secrets.toml
+*.pyc
+
+# Editor / runtime temp files
+*.tmp.*
+*.log
