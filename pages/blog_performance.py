@@ -20,48 +20,50 @@ from data_connectors import get_google_credentials
 GSC_PROPERTY = "sc-domain:shreeshivam.com"
 BASE_URL     = "https://www.shreeshivam.com"
 
+# (pub_date, handle, focus_keyword, search_vol)
+# search_vol = 0 means not tracked / unknown
 ARTICLES = [
-    ("2026-04-23", "5-elegant-ways-to-style-a-beige-kurti-set"),
-    ("2026-04-25", "contrast-kurti-set-trending-2026"),
-    ("2026-04-27", "black-thread-work-kurti-designs-2026"),
-    ("2026-04-29", "office-wear-kurti-set-styling-2026"),
-    ("2026-05-01", "kurti-set-for-wedding-guest-styling-guide"),
-    ("2026-05-04", "kurti-set-vs-salwar-suit-difference"),
-    ("2026-05-05", "bridal-lehenga-2026-latest-designs-style-guide-for-the-modern-bride"),
-    ("2026-05-06", "face-of-shree-shivam-2026-the-stylish-kid-season-3"),
-    ("2026-05-07", "wedding-saree-for-bride-the-ultimate-2026-bridal-saree-guide"),
-    ("2026-05-12", "the-ready-to-wear-saree-guide-2026-zip-and-go-elegance"),
-    ("2026-05-12", "10-stunning-indo-western-dresses-for-2026-weddings-the-ultimate-fusion-guide"),
-    ("2026-05-13", "co-ord-set-women-2026-style-guide"),
-    ("2026-05-13", "10-best-gowns-for-women-in-2026-the-ultimate-wedding-party-wear-guide"),
-    ("2026-05-14", "5-affordable-summer-haul-cotton-kurta-sets-under-2-500-your-ultimate-guide"),
-    ("2026-05-14", "10-must-buys-expert-buying-guide-for-affordable-party-sarees-in-raipur-nagpur"),
-    ("2026-05-15", "10-most-wanted-simple-back-blouse-designs-to-elevate-your-ethnic-wear-game-in-2026"),
-    ("2026-05-15", "office-casual-cotton-sarees"),
-    ("2026-05-18", "cotton-kurtis-raipur-nagpur"),
-    ("2026-05-18", "party-wear-saree-guide-2026"),
-    ("2026-05-19", "modern-salwar-suit-styling-guide-2026"),
-    ("2026-05-19", "dupatta-guide-raipur-nagpur"),
-    ("2026-05-20", "pakistani-suits-guide-2026"),
-    ("2026-05-20", "girlish-suit-designs-2026"),
-    ("2026-05-21", "suit-sets-styling-guide-2026"),
-    ("2026-05-21", "chic-suit-designs-women-2026"),
-    ("2026-05-22", "kurta-sets-for-women-2026-trends"),
-    ("2026-05-22", "anarkali-kurta-set-guide-2026"),
-    ("2026-05-23", "salwar-suit-design-trends-2026"),
-    ("2026-05-23", "cotton-suit-prints-and-weaves-2026"),
-    ("2026-05-25", "ladies-suit-designs-2026"),
-    ("2026-05-25", "kurta-for-women-complete-guide-2026"),
-    ("2026-05-26", "ethnic-dresses-for-women-2026"),
-    ("2026-05-26", "gown-for-women-wedding-styles-2026"),
-    ("2026-05-27", "lehenga-for-women-party-wear-2026"),
-    ("2026-05-27", "wedding-guest-guide-outfits-wishes-2026"),
-    ("2026-05-28", "anarkali-suit-party-wear-2026"),
-    ("2026-05-28", "sleeve-design-for-kurti-2026"),
-    ("2026-05-29", "patiala-suit-guide-2026"),
-    ("2026-05-29", "kurti-designs-for-women-2026"),
+    ("2026-04-23", "5-elegant-ways-to-style-a-beige-kurti-set",                             "kurti set styling",               0),
+    ("2026-04-25", "contrast-kurti-set-trending-2026",                                       "contrast kurti set",              0),
+    ("2026-04-27", "black-thread-work-kurti-designs-2026",                                   "black thread work kurti designs",  0),
+    ("2026-04-29", "office-wear-kurti-set-styling-2026",                                     "office wear kurti set",           0),
+    ("2026-05-01", "kurti-set-for-wedding-guest-styling-guide",                              "kurti set for wedding guest",     0),
+    ("2026-05-04", "kurti-set-vs-salwar-suit-difference",                                    "kurti set vs salwar suit",        0),
+    ("2026-05-05", "bridal-lehenga-2026-latest-designs-style-guide-for-the-modern-bride",    "bridal lehenga 2026",             0),
+    ("2026-05-06", "face-of-shree-shivam-2026-the-stylish-kid-season-3",                     "face of shree shivam",            0),
+    ("2026-05-07", "wedding-saree-for-bride-the-ultimate-2026-bridal-saree-guide",           "wedding saree for bride",         0),
+    ("2026-05-12", "the-ready-to-wear-saree-guide-2026-zip-and-go-elegance",                 "ready to wear saree",             0),
+    ("2026-05-12", "10-stunning-indo-western-dresses-for-2026-weddings-the-ultimate-fusion-guide", "indo western dress for women", 0),
+    ("2026-05-13", "co-ord-set-women-2026-style-guide",                                      "co ord set women",            165000),
+    ("2026-05-13", "10-best-gowns-for-women-in-2026-the-ultimate-wedding-party-wear-guide",  "gown for women",                  0),
+    ("2026-05-14", "5-affordable-summer-haul-cotton-kurta-sets-under-2-500-your-ultimate-guide", "cotton kurta sets for women",  0),
+    ("2026-05-14", "10-must-buys-expert-buying-guide-for-affordable-party-sarees-in-raipur-nagpur", "party wear saree",        74000),
+    ("2026-05-15", "10-most-wanted-simple-back-blouse-designs-to-elevate-your-ethnic-wear-game-in-2026", "simple back design of blouse", 0),
+    ("2026-05-15", "office-casual-cotton-sarees",                                            "cotton saree",                    0),
+    ("2026-05-18", "cotton-kurtis-raipur-nagpur",                                            "cotton kurti for women",      60500),
+    ("2026-05-18", "party-wear-saree-guide-2026",                                            "saree for women party wear",  74000),
+    ("2026-05-19", "modern-salwar-suit-styling-guide-2026",                                  "salwar suit for women",       49500),
+    ("2026-05-19", "dupatta-guide-raipur-nagpur",                                            "dupatta",                     60500),
+    ("2026-05-20", "pakistani-suits-guide-2026",                                             "pakistani suit for women",    40000),
+    ("2026-05-20", "girlish-suit-designs-2026",                                              "girlish suit design",         27000),
+    ("2026-05-21", "suit-sets-styling-guide-2026",                                           "suit set for women",          40000),
+    ("2026-05-21", "chic-suit-designs-women-2026",                                           "suit design for women",       60500),
+    ("2026-05-22", "kurta-sets-for-women-2026-trends",                                       "kurta sets for women",        49500),
+    ("2026-05-22", "anarkali-kurta-set-guide-2026",                                          "anarkali kurta set",          49500),
+    ("2026-05-23", "salwar-suit-design-trends-2026",                                         "salwar suit design",              0),
+    ("2026-05-23", "cotton-suit-prints-and-weaves-2026",                                     "cotton suit for women",           0),
+    ("2026-05-25", "ladies-suit-designs-2026",                                               "ladies suit design",          40500),
+    ("2026-05-25", "kurta-for-women-complete-guide-2026",                                    "kurta for women",            301000),
+    ("2026-05-26", "ethnic-dresses-for-women-2026",                                          "ethnic dresses for women",    40500),
+    ("2026-05-26", "gown-for-women-wedding-styles-2026",                                     "gown for women",                  0),
+    ("2026-05-27", "lehenga-for-women-party-wear-2026",                                      "lehenga for women party wear",    0),
+    ("2026-05-27", "wedding-guest-guide-outfits-wishes-2026",                                "wedding guest outfit",            0),
+    ("2026-05-28", "anarkali-suit-party-wear-2026",                                          "anarkali suit party wear",        0),
+    ("2026-05-28", "sleeve-design-for-kurti-2026",                                           "sleeve design for kurti",         0),
+    ("2026-05-29", "patiala-suit-guide-2026",                                                "patiala suit for women",          0),
+    ("2026-05-29", "kurti-designs-for-women-2026",                                           "kurti designs for women",     49500),
 ]
-ARTICLE_URLS = {f"{BASE_URL}/blogs/blog/{h}": d for d, h in ARTICLES}
+ARTICLE_URLS = {f"{BASE_URL}/blogs/blog/{h}": d for d, h, _, __ in ARTICLES}
 
 # ── Colour helpers ─────────────────────────────────────────────────────────────
 
@@ -138,12 +140,12 @@ def _html_wrap(inner_html, height=700, min_width=1200):
 
 
 def _overview_html(df):
-    headers = ["#", "Published", "Days", "Handle", "GSC Status",
-               "Clicks", "Impressions", "Avg Pos", "Best Pos",
+    headers = ["#", "Published", "Days", "Handle", "Focus Keyword", "Search Vol",
+               "GSC Status", "Clicks", "Impressions", "Avg Pos", "Best Pos",
                "# KWs", "Top 3", "Top 10", "Top Keyword", "Top KW Pos",
                "Index Status", "Last Crawled"]
-    aligns  = ["right","left","right","left","left",
-               "right","right","right","right",
+    aligns  = ["right","left","right","left","left","right",
+               "left","right","right","right","right",
                "right","right","right","left","right",
                "left","left"]
     head = "<thead><tr>" + "".join(_th(h, a) for h, a in zip(headers, aligns)) + "</tr></thead>"
@@ -170,6 +172,9 @@ def _overview_html(df):
             _td(str(r["Days Live"]), "right"),
             _td(f'<a href="{BASE_URL}/blogs/blog/{r["Handle"]}" target="_blank" '
                 f'style="color:#2563eb;text-decoration:none;font-size:12px">{r["Handle"]}</a>'),
+            _td(str(r.get("Focus Keyword", "—")), nowrap=True),
+            _td(f'{int(r["Search Vol"]):,}' if r.get("Search Vol", 0) > 0 else "—",
+                "right", bold=r.get("Search Vol", 0) > 0),
             # GSC Status pill — coloured bg on this cell only
             _td(f'<span style="background:{gsc_bg};color:{gsc_fg};padding:2px 8px;'
                 f'border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap">'
@@ -413,7 +418,7 @@ def run_url_inspection(urls):
 def build_summary(gsc_df, inspection):
     today = datetime.today().date()
     rows  = []
-    for pub_date, handle in ARTICLES:
+    for pub_date, handle, focus_kw, search_vol in ARTICLES:
         url      = f"{BASE_URL}/blogs/blog/{handle}"
         age_days = (today - datetime.strptime(pub_date, "%Y-%m-%d").date()).days
         if not gsc_df.empty and url in gsc_df["url"].values:
@@ -442,6 +447,8 @@ def build_summary(gsc_df, inspection):
             }
         insp = inspection.get(url, {})
         row.update({
+            "Focus Keyword": focus_kw,
+            "Search Vol":    search_vol,
             "Index Status":   insp.get("coverage", "—"),
             "Last Crawled":   insp.get("last_crawl", "—"),
             "Crawled As":     insp.get("crawled_as", "—"),
@@ -541,7 +548,10 @@ def render(master_df, notion_df):
 
         # Meta bar
         insp_v = st.session_state["inspection_results"].get(sel_url, {})
+        vol_str = f"{int(pub_row['Search Vol']):,}/mo" if pub_row.get("Search Vol", 0) > 0 else "—"
         meta   = [
+            f"**Focus keyword:** {pub_row.get('Focus Keyword', '—')}",
+            f"**Search vol:** {vol_str}",
             f"**Published:** {pub_row['Published']}",
             f"**Days live:** {pub_row['Days Live']}",
             f"**GSC:** {pub_row['GSC Status']}",
